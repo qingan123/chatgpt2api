@@ -10,6 +10,6 @@ ss -ltn "sport = :$PORT" 2>/dev/null | grep -q LISTEN && fail "端口 $PORT 已�
 mkdir -p "$APP_DIR"; [[ -z "$(find "$APP_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]] || fail '目标目录非空'; git clone --depth 1 "$REPO_URL" "$APP_DIR"; cd "$APP_DIR"; cp -n .env.example .env 2>/dev/null || true; chmod 600 .env
 sed -i -E "s/\"[0-9]+:80\"/\"$PORT:80\"/" docker-compose.yml
 docker compose --env-file .env up -d --build
-for _ in {1..60}; do curl -fsS --max-time 2 "http://127.0.0.1:$PORT/" >/dev/null && break; sleep 1; done
-curl -fsS --max-time 2 "http://127.0.0.1:$PORT/" >/dev/null || { docker compose logs --tail=100; exit 1; }
+for _ in {1..60}; do curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health?format=json" >/dev/null && break; sleep 1; done
+curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health?format=json" >/dev/null || { docker compose logs --tail=100; exit 1; }
 ip="${PUBLIC_HOST:-$(curl -4fsS --max-time 5 https://api.ipify.org || true)}"; url=${ip:+http://$ip:$PORT/}; [[ -n "$url" ]] || url='公网IP探测失败，请检查安全组/UFW'; printf '部署完成。\n公网地址: %s\n本机地址: http://127.0.0.1:%s/\n端口: %s（由HOST_PORT发布）\n目录: %s\n' "$url" "$PORT" "$PORT" "$APP_DIR"
